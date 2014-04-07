@@ -1,7 +1,8 @@
 from itertools import combinations
 from functools import total_ordering, reduce
 from collections import Counter
-from operator import sub, eq
+from operator import sub, eq, itemgetter
+
 
 """
 #Here lies a reimplementation of something already in itertools.
@@ -35,17 +36,39 @@ class FiveCardHand(object):
         self.cards = cards
         self.ranks = sorted([card.number for card in self.cards])
         self.suits = sorted([card.suit for card in self.cards])
-
+        self.handValue = self.valueArray()
+           
     def __eq__(self, other):
         return self.valueArray() == other.valueArray()
 
     def __lt__(self, other):
         return self.valueArray() < other.valueArray()
+    
+    def handName(self):
+        if self.handValue[0] == 5:
+            return "Straight Flush"
+        if self.handValue[0] == 4:
+            return "Four of a Kind"
+        if self.handValue[0] == 3:
+            if self.handValue[1] == 2:
+                return "Full House"
+            if self.handValue[2] == 4:
+                return "Flush"
+            if self.handValue[2] == 3 or self.handValue[2] == 2:
+                return "Straight"
+            else:
+                return "Three of a Kind"
+        if self.handValue[0] == 2:
+            if self.handValue[1] == 2:
+                return "Two Pair"
+            else:
+                return "Pair"
+        return "High Card"
 
     def valueArray(self):
         rank, repeat = zip(*Counter(self.ranks).most_common())
         #rank, repeat = zip(*sorted(Counter(self.ranks).most_common(), key=itemgetter(1, 0), reverse=True))
-
+        print(repeat + rank)
         return self.specialHands() + (repeat + rank)
 
     def specialHands(self):
@@ -82,7 +105,7 @@ if __name__ == '__main__':
             self.number = rank
             self.suit = suit
 
-    hand1 = FiveCardHand([Card(3, 1), Card(2, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
-    hand2 = FiveCardHand([Card(3, 1), Card(7, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
+    hand1 = FiveCardHand([Card(2, 1), Card(2, 3), Card(14, 1), Card(5, 3), Card(5, 4)])
+    hand2 = FiveCardHand([Card(4, 1), Card(4, 1), Card(14, 1), Card(3, 3), Card(3, 4)])
     print(hand1 > hand2)
 
