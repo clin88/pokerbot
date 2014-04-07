@@ -118,7 +118,7 @@ class Card:
             n = "Q"
         elif self.number == 13:
             n = "K"
-        elif self.number == 1:
+        elif self.number == 14:
             n = "A"
         else:
             n = self.number
@@ -132,7 +132,7 @@ class Card:
     def shuffled_deck():
         deck = []
         for suit in Suits:
-            for number in range(1, 14):
+            for number in range(2, 15):
                 deck.append(Card(suit, number))
  
         random.shuffle(deck)
