@@ -1,5 +1,6 @@
 from enum import Enum
 from collections import OrderedDict
+from itertools import chain, cycle, product
 import random
 
 """
@@ -9,20 +10,64 @@ dealer
 whose turn is it?
 """
 
+class Game:
+    def __init__(self, players):
+        deck = Card.shuffled_deck()
+
+        self.community = [deck.pop() for _ in range(5)]
+        self.players = []
+        for player in players:
+            self.players.append({
+                'name': player,
+                'hand': [deck.pop(), deck.pop()]
+            })
+
+        self.pot = 0
+
 class Round:
     """Controls each round of betting.
     """
-    @staticmethod
-    def turns(players, start):
+    def turns(self, players, start):
         """
             players :: List of playerinfos
             yields  :: player
         """
         # TODO: What are the edge cases for everyone folding/1 remaining?
+        last_highbet = self.highbet
+        last_raiser = players[start-1]
+        round_ = cycle(players[start:] + players[:start])
+        for player in round_:
+            if self.highbet >
+            if player['folded']:
+                continue
+
+            if self.highbet > last_highbet:
+
+
+            if player == last_raiser:
+                return
+
+            yield player
+
+
+
         while True:
-            for player in players:
-                if not player['folded']:
-                    yield player
+            prev_bet = self.highbet
+            for player in cycle:
+                if last_turn == player:
+                    return
+                if player['folded']:
+                    continue
+
+                # last raiser
+                if all(folded or athighbet):
+                    return
+                last_turn = player
+                yield player
+
+            # completed one round of betting with no further raises, continue
+            if self.highbet == prev_bet:
+                return
 
 
     def __init__(self, players, blind, dealer):
@@ -30,44 +75,47 @@ class Round:
         #if len(players) < 3:
         #    raise Exception("Not enough players, dummy.")
 
-        #self.pot = 0
         self.blind = blind
         self.highbet = blind
 
-        deck = Card.shuffled_deck()
-
-        # draw community cards
-        self.community = [deck.pop() for _ in range(5)]
-
-        dealer_i = players.index(dealer)
-        bigblind = players[dealer_i + 1]
-        smallblind = players[dealer_i + 2]
+        # 3 players, a, b, c
+        # dealer = 1
+        # bb = 2 % 3 = 2
+        # sb = a
+        # start = b
+        player_count = len(players)
+        dealer = players.index(dealer)
+        bigblind = (dealer + 1) % player_count
+        smallblind = (dealer + 2) % player_count
+        start = (dealer + 3) % player_count
 
         self.players = []
         for player in players:
             new_player = {
                 'name': player,
-                'hand': [deck.pop(), deck.pop()],
-                'folded': False,
                 'bet': 0
             }
-            if player == bigblind:
+            if player == players[bigblind]:
                 new_player['bet'] = blind
-            elif player == smallblind:
+            elif player == players[smallblind]:
                 new_player['bet'] = blind / 2
 
             self.players.append(new_player)
 
-        self._turns = Round.turns(self.players)
+        self._turns = Round.turns(self.players, start=start)
         self.turn = next(self._turns)
 
     def bet(self, pname, decision, amount=None):
         curplayer = self.turn
         if pname != curplayer['name']:
-            raise Exception("Stop betting out of turn!")
+            print("Stop betting out of turn!")
+            #raise Exception("Stop betting out of turn!")
+
+
 
         if decision == Decision.fold:
             curplayer['folded'] = True
+            self.turn = next(self._turns)
         elif decision == Decision.check:
             # TODO: Some indicator that a turn has been passed, so we can tell
             # if everybody checks
@@ -79,20 +127,12 @@ class Round:
             elif total >= 2 * self.highbet:
                 bet_type = BetResult.raisebet
             else:
-                # TODO: Indicate unacceptable bet
                 return {'result': BetResult.invalid_bet}
 
             self.highbet = total
             curplayer['bet'] = total
-            #self.pot += amount
-
             self.turn = next(self._turns, False)
-            if self.turn is False:
-                # TODO: Indicate winner, since only one player remains unfolded.
-                return {'result': BetResult.winner, 'winner': _}
 
-            # TODO: Indicate call.
-            # TODO: Indicate raise
             return {'result': bet_type}
 
 class BetResult(Enum):
@@ -128,13 +168,11 @@ class Card:
     def __repr__(self):
         return str(self)
 
-    @staticmethod
-    def shuffled_deck():
+    @classmethod
+    def shuffled_deck(cls):
         deck = []
-        for suit in Suits:
-            for number in range(2, 15):
-                deck.append(Card(suit, number))
- 
+        for suit, number in product(Suits, range(1, 14)):
+            deck.append(cls(suit, number))
         random.shuffle(deck)
         return deck
 
@@ -159,15 +197,4 @@ class Suits(Enum):
         elif self == Suits.club:
             return "\u2663"
 
-if __name__ == "__main__":
-    print(hand.deck)
-    print(hand.players)
-    print(hand.community)
-
-    players = {
-        "sean": 150,
-        "r0ml": 100,
-        "fred": 999
-    }
-
-    hand = Game(len(players), 10)
+test_round = Round(['a', 'b', 'c'], 10, 'b')

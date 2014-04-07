@@ -1,7 +1,8 @@
 from itertools import combinations
-from functools import total_ordering
+from functools import total_ordering, reduce
 from collections import Counter
-from operator import itemgetter, sub
+from operator import sub, eq
+
 """
 #Here lies a reimplementation of something already in itertools.
 
@@ -22,92 +23,66 @@ def createChooseLookupTable(n,m):
 
 print(createChooseLookupTable(7,5))   
 """
-@total_ordering
-class CombinedHand(object):
-  def __init__(self, holeCards, communityCards = []):
-    self.communityCards = communityCards
-    self.holeCards = holeCards
-    
-  def winHand(self):
-    self.combinedCards = holeCards + communityCards  
-    return max(map(FiveCardHand, combinations(combinedCards, 5)))
-  
-  def __eq__(self, other):
-    return self.winHand() == other.winHand()
-  def __lt__(self, other): 
-    return self.winHand() < other.winHand()
 
 
-    
+def best_hand(hand):
+    hands = map(FiveCardHand, combinations(hand, 5))
+    return max(hands)
 
 @total_ordering
 class FiveCardHand(object):
-  def __init__(self,cards):
-    self.cards = cards
-  def __eq__(self, other):
-    return self.valueArray() == other.valueArray()
-  def __lt__(self, other): 
-    return self.valueArray() < other.valueArray()
+    def __init__(self, cards):
+        self.cards = cards
+        self.ranks = sorted([card.number for card in self.cards])
+        self.suits = sorted([card.suit for card in self.cards])
 
-  def SuitIterator(self):
-    def SuitGeneratorClosure():
-      for card in self.cards:
-        yield card.suit
-    return SuitGeneratorClosure()
+    def __eq__(self, other):
+        return self.valueArray() == other.valueArray()
 
-  def RankIterator(self):
-    def RankGeneratorClosure():
-      for card in self.cards:
-        yield card.number
-    return RankGeneratorClosure()
+    def __lt__(self, other):
+        return self.valueArray() < other.valueArray()
 
-  def cardValueTuples(self):
-    rank, repeat = zip(*sorted(Counter(self.RankIterator()).most_common(), key=itemgetter(1,0), reverse = True))
-    return list(repeat + rank)
-  
-  def valueArray(self):
-    return self.specialHands() + self.cardValueTuples()
-  
-  def specialHands(self):
-    if self.isFlush():
-      if self.isStraight():
-        return [5,2]
-      elif self.isBicycle():
-        return [5,1]
-      else:
-        return [3,1,4]
-    if self.isStraight():
-      return [3,1,3]
-    if self.isBicycle():
-      return [3,1,2]
-    return []
+    def valueArray(self):
+        rank, repeat = zip(*Counter(self.ranks).most_common())
+        #rank, repeat = zip(*sorted(Counter(self.ranks).most_common(), key=itemgetter(1, 0), reverse=True))
 
-  def isStraight(self):
-    sortedCards = sorted(self.RankIterator())
-    return(list(map(sub,sortedCards[1:5], sortedCards[0:4]))) == [1,1,1,1]
- 
-  def isBicycle(self):
-    sortedCards = sorted(self.RankIterator())
-    return sortedCards == [2, 3, 4, 5, 14]
+        return self.specialHands() + (repeat + rank)
 
-  def isFlush(self):
-    
-    #all(map(self.cards[0].suit.__eq__,self.cards.suits # as an iterable))
-    
-    aSuit = self.cards[0].suit
-    for card in self.cards:
-      if card.suit != aSuit:
-        return False
-    return True
+    def specialHands(self):
+        if self.isFlush():
+            if self.isStraight():
+                return 5, 2
+            elif self.isBicycle():
+                return 5, 1
+            else:
+                # Regular flush
+                return 3, 1, 4
+        if self.isStraight():
+            return 3, 1, 3
+        if self.isBicycle():
+            return 3, 1, 2
+        # TODO: Three of a kind?
+        return ()
+
+    def isStraight(self):
+        steps = map(sub, self.ranks[1:5], self.ranks[0:4])
+        return list(steps) == [1, 1, 1, 1]
+
+    def isBicycle(self):
+        return self.ranks == [2, 3, 4, 5, 14]
+
+    def isFlush(self):
+        return reduce(eq, self.suits)
 
 #class 
 
 if __name__ == '__main__':
-  class Card(object):
-    def __init__(self,rank,suit):
-      self.number = rank
-      self.suit = suit
+    class Card(object):
+        def __init__(self, rank, suit):
+            self.number = rank
+            self.suit = suit
 
-  hand1 = FiveCardHand([Card(3,1), Card(2, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
-  hand2 = FiveCardHand([Card(3,1), Card(7, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
-  print(hand1>hand2)
+    hand1 = FiveCardHand([Card(3, 1), Card(2, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
+    hand2 = FiveCardHand([Card(3, 1), Card(7, 1), Card(14, 1), Card(4, 3), Card(5, 4)])
+    print(hand1 > hand2)
+
